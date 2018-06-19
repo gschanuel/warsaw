@@ -1,63 +1,49 @@
-FROM ubuntu:artful
+FROM debian:stable-slim 
 LABEL maintainer "Gabriel Schanuel <gabriel.schanuel@gmail.com>"
 
-# Baixar o Firefox e o Warsaw 
-#ADD https://cloud.gastecnologia.com.br/bb/downloads/ws/warsaw_setup64.deb /src/
-ADD https://cloud.gastecnologia.com.br/gas/diagnostico/warsaw-setup-ubuntu_64.deb /src/warsaw_setup64.deb
-ADD https://ufpr.dl.sourceforge.net/project/ubuntuzilla/mozilla/apt/pool/main/f/firefox-mozilla-build/firefox-mozilla-build_57.0.4-0ubuntu1_amd64.deb /src/firefox.deb
+# docker run -it --rm \
+#            -v /tmp/.X11-unix:/tmp/.X11-unix \
+#            -v $HOME/Downloads:/home/banco/Downloads \
+#            -e DISPLAY=unix$DISPLAY \
+#            --name warsaw-browser \
+#            lichti/warsaw-browser
 
 ENV DEBIAN_FRONTEND noninteractive
-RUN echo 'deb http://archive.canonical.com/ubuntu artful partner' >> /etc/apt/sources.list
+
+RUN echo 'deb http://ftp.br.debian.org/debian/ unstable main contrib non-free' >> /etc/apt/sources.list \
+    && echo 'deb http://ftp.br.debian.org/debian/ sid main contrib non-free' >> /etc/apt/sources.list \
+    && echo 'deb http://ftp.br.debian.org/debian/ experimental main contrib non-free' >> /etc/apt/sources.list
+
 RUN apt update \
-	# Instalar as dependencias do Firefox
-	&& apt install -qqy $(apt-cache depends firefox | awk '$1~/Depends/{printf $2" "}') \
-	# Instalar os outros pacotes necessários
-	sudo \
-	apt-transport-https \
-	ca-certificates \
-	fonts-symbola \
-	gnupg \
-#	firefox \
-	adobe-flashplugin \
-	hicolor-icon-theme \
-	language-pack-pt \
-	libcurl3 \
-	libgl1-mesa-dri \
-	libgl1-mesa-glx \
-	libnss3-tools \
-	libpango1.0-0 \
-	libpulse0 \
-	libv4l-0 \
-	openssl \
-	dbus \
-	sudo \
-	x11-apps \
-	x11-utils \
-	xauth \
-	libdbusmenu-glib4 \
-	libdbusmenu-gtk3-4 \
-	--no-install-recommends \
-	# Instalar o firefox 57 a partir do deb
-	#&& apt -y install /src/firefox-mozilla-build_57.0.4-0ubuntu1_amd64.deb \
-	&& apt -y install /src/firefox.deb \
-	&& apt clean \
-	&& rm -rf /var/lib/apt/lists/* 
-
-#Criar o usuário e adiciona-lo ao sudoers
-RUN 	useradd -m -u 1000 -r -G audio,video banco \
-	&& mkdir -p /home/banco/Downloads \
-	&& echo "banco ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
-	&& chmod 0440 /etc/sudoers \
-	&& passwd -d root
-
-# Copiar o Script de inicialização e setar suas permissões
-COPY	start.sh /home/banco/start.sh
-RUN	chmod 755 /home/banco/start.sh \
-	&& ln -s /home/banco/start.sh /usr/local/bin/start.sh
-
-#COPY local.conf /etc/fonts/local.conf
+  && apt install -qqy \
+  sudo \
+  bash \
+  bsdmainutils \
+  libcom-err2 \
+  libssl1.1 \
+  openssl \
+  dialog \
+  firefox \
+  libnss3-tools \
+  --no-install-recommends \
+#  && apt clean \
+#  && rm -rf /var/lib/apt/lists/* \
+  && groupadd -g 1000 -r banco \
+  && useradd -u 1000 -r -m -g banco -G audio,video banco \
+  && echo "banco ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
+  && chmod 0440 /etc/sudoers \
+  && passwd -d root \
+  && mkdir /src
 
 USER banco
 ENV HOME /home/banco
 
-CMD ["/home/banco/start.sh"]
+#ADD https://cloud.gastecnologia.com.br/bb/downloads/ws/warsaw_setup64.deb /src/
+ADD http://security.debian.org/debian-security/pool/updates/main/o/openssl/libssl1.0.0_1.0.1t-1+deb7u4_amd64.deb /src
+ADD https://cloud.gastecnologia.com.br/gas/diagnostico/warsaw-setup-ubuntu_64.deb /src
+
+RUN dpkg -i /src/libssl1.0.0_1.0.1t-1+deb7u4_amd64.deb
+
+COPY start.sh /src/start.sh
+
+ENTRYPOINT ["/src/start.sh"]

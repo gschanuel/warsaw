@@ -1,7 +1,7 @@
 version: '2'
 services:
-  ws_browser:
-    image: gschanuel/warsaw
+  bash:
+    image: gschanuel/bash
     build: .
     devices:
       - /dev/snd:/dev/snd
