@@ -172,13 +172,16 @@ zenity-common \
   && passwd -d root \
   && mkdir /src
 
-USER banco
-ENV HOME /home/banco
 
 ADD https://cloud.gastecnologia.com.br/gas/diagnostico/warsaw-setup-ubuntu_64.deb /src
 
-RUN sudo dpkg -i /src/warsaw-setup-ubuntu_64.deb 
-
+RUN dpkg -i /src/warsaw-setup-ubuntu_64.deb 
 COPY start.sh /src/start.sh
+RUN touch /src/first
+
+USER banco
+ENV HOME /home/banco
+
+#RUN firefox -CreateProfile default
 
 ENTRYPOINT ["/src/start.sh"]
